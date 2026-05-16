@@ -633,7 +633,7 @@ const [blocked, setBlocked] = useState(false);
         {nav.map(n => {
           const active = page === n.id;
           return (
-            <button key={n.id} onClick={() => n.id === "logout" ? window.location.href = "/" : setPage(n.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0 14px", border: "none", background: "none", cursor: "pointer", position: "relative" }}>
+            <button key={n.id} onClick={() => n.id === "logout" ? (async () => { await supabase.auth.signOut(); window.location.href = "/"; })() : setPage(n.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0 14px", border: "none", background: "none", cursor: "pointer", position: "relative" }}>
               {active && <div style={{ position: "absolute", top: 0, left: "20%", right: "20%", height: 2, background: G, borderRadius: "0 0 4px 4px" }} />}
               <span style={{ fontSize: 20, marginBottom: 3 }}>{n.e}</span>
               <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? G : "#9CA3AF" }}>{n.l}</span>
