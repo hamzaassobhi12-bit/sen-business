@@ -535,6 +535,45 @@ function Dettes({ shop, showToast }: { shop: Shop; showToast: (m: string, ok?: b
   );
 }
 
+// PAYWALL
+function Paywall({ shop }: { shop: Shop }) {
+  return (
+    <div style={{ background: "#0A0F1E", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "system-ui,sans-serif", color: "#fff" }}>
+      <div style={{ width: "100%", maxWidth: 380, textAlign: "center" }}>
+        <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
+        <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 8 }}>Essai gratuit terminé</h1>
+        <p style={{ color: "#9CA3AF", fontSize: 15, marginBottom: 32, lineHeight: 1.6 }}>
+          Votre essai de 7 jours est terminé.<br/>
+          Passez au plan Pro pour continuer.
+        </p>
+        <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 20, padding: 28, marginBottom: 20 }}>
+          <div style={{ background: "rgba(0,200,150,.1)", border: "1px solid rgba(0,200,150,.3)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+            <div style={{ color: "#00C896", fontWeight: 900, fontSize: 28 }}>5 000 FCFA</div>
+            <div style={{ color: "#9CA3AF", fontSize: 13 }}>par mois</div>
+          </div>
+          <div style={{ textAlign: "left", marginBottom: 20 }}>
+            {["Produits illimités", "Ventes illimitées", "Suivi des dettes", "Rapports complets", "Support WhatsApp"].map((f, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(31,41,55,.4)" }}>
+                <span style={{ color: "#00C896", fontSize: 18 }}>✓</span>
+                <span style={{ fontSize: 14 }}>{f}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: "#0d1520", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+            <p style={{ color: "#9CA3AF", fontSize: 13, marginBottom: 8 }}>Envoyez 5 000 FCFA sur Wave :</p>
+            <div style={{ color: "#fff", fontWeight: 900, fontSize: 22, marginBottom: 4 }}>+221 XX XXX XXXX</div>
+            <p style={{ color: "#9CA3AF", fontSize: 12 }}>Objet : SenBusiness + {shop.name}</p>
+          </div>
+          <a href="https://wa.me/221XXXXXXXXX?text=Bonjour, je veux activer mon abonnement Sen Business pour la boutique: " + shop.name style={{ display: "block", background: "linear-gradient(135deg,#25D366,#1ebe5c)", color: "#fff", borderRadius: 12, padding: "14px 0", fontWeight: 700, fontSize: 15, textDecoration: "none", textAlign: "center" }}>
+            💬 Contacter sur WhatsApp
+          </a>
+        </div>
+        <p style={{ color: "#6B7280", fontSize: 12 }}>Après paiement, votre compte sera activé dans les 2h</p>
+      </div>
+    </div>
+  );
+}
+
 // ROOT
 export default function SenBusiness() {
   const [screen, setScreen] = useState<"login" | "app">("login");
@@ -542,6 +581,7 @@ export default function SenBusiness() {
   const [page, setPage] = useState("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
+const [blocked, setBlocked] = useState(false);
   const [toastOk, setToastOk] = useState(true);
 
   const showToast = (msg: string, ok = true) => { setToastMsg(msg); setToastOk(ok); setTimeout(() => setToastMsg(""), 2600); };
