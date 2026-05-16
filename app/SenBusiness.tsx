@@ -564,7 +564,7 @@ function Paywall({ shop }: { shop: Shop }) {
             <div style={{ color: "#fff", fontWeight: 900, fontSize: 22, marginBottom: 4 }}>+221 78 658 46 22</div>
             <p style={{ color: "#9CA3AF", fontSize: 12 }}>Objet : SenBusiness + {shop.name}</p>
           </div>
-          <a href="https://wa.me/221786584622?text=Bonjour, je veux activer mon abonnement Sen Business pour la boutique: " + shop.name style={{ display: "block", background: "linear-gradient(135deg,#25D366,#1ebe5c)", color: "#fff", borderRadius: 12, padding: "14px 0", fontWeight: 700, fontSize: 15, textDecoration: "none", textAlign: "center" }}>
+          <<a href={`https://wa.me/221786584622?text=Bonjour je veux activer mon abonnement Sen Business pour la boutique: ${shop.name}`} style={{ display: "block", background: "linear-gradient(135deg,#25D366,#1ebe5c)", color: "#fff", borderRadius: 12, padding: "14px 0", fontWeight: 700, fontSize: 15, textDecoration: "none", textAlign: "center" }}>
             💬 Contacter sur WhatsApp
           </a>
         </div>
