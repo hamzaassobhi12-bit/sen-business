@@ -576,7 +576,7 @@ export default function SenBusiness() {
                 <div style={{ fontWeight: 700, fontSize: 13 }}>{shop.owner_name}</div>
                 <div style={{ color: "#9CA3AF", fontSize: 12 }}>{shop.name}</div>
               </div>
-              <button onClick={async () => { await supabase.auth.signOut(); setShop(null); setScreen("login"); setMenuOpen(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontWeight: 600, fontSize: 13, borderRadius: 8 }}>
+              <button onClick={async () => { supabase.auth.signOut().then(() => { setShop(null); setScreen("login"); setMenuOpen(false); }); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontWeight: 600, fontSize: 13, borderRadius: 8 }}>
                 🚪 Deconnexion
               </button>
             </div>
