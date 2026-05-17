@@ -126,6 +126,157 @@ function Login({ onLogin }: { onLogin: (shop: Shop) => void }) {
 
 // DASHBOARD
 function Dashboard({ shop }: { shop: Shop }) {
+  const [period, setPeriod] = useState("today");
+  const [stats, setStats] = useState({ ca: 0, ventes: 0, profit: 0, alerts: 0 });
+  const [recentSales, setRecentSales] = useState<Sale[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const now = new Date();
+      let startDate = "";
+
+      if (period === "today") {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      } else if (period === "week") {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        startDate = new Date(now.getFullYear(), now.getMonth(), diff).toISOString();
+      } else if (period === "month") {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      }
+
+      const { data: sales } = await supabase
+        .from("sales")
+        .select("*")
+        .eq("shop_id", shop.id)
+        .gte("created_at", startDate);
+
+      const { data: products } = await supabase
+        .from("products")
+        .select("*")
+        .eq("shop_id", shop.id);
+
+      const { data: allSales } = await supabase
+        .from("sales")
+        .select("*")
+        .eq("shop_id", shop.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (sales) {
+        setStats({
+          ca: sales.reduce((a, s) => a + s.total, 0),
+          ventes: sales.length,
+          profit: sales.reduce((a, s) => a + s.profit, 0),
+          alerts: products ? products.filter((p: Product) => p.stock <= p.min_stock).length : 0,
+        });
+      }
+      if (allSales) setRecentSales(allSales);
+      setLoading(false);
+    };
+    load();
+  }, [shop.id, period]);
+
+  const periodLabel = period === "today" ? "Aujourd'hui" : period === "week" ? "Cette semaine" : "Ce mois";
+
+  return (
+    <div>
+      <h1 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 4px" }}>Tableau de bord</h1>
+      <p style={{ color: "#9CA3AF", fontSize: 13, margin: "0 0 16px" }}>
+        {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} 👋
+      </p>
+
+      {/* Sélecteur période */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "#111827", border: "1px solid #1F2937", borderRadius: 14, padding: 4 }}>
+        {[["today", "📅 Aujourd'hui"], ["week", "📆 Semaine"], ["month", "🗓️ Mois"]].map(([k, l]) => (
+          <button key={k} onClick={() => setPeriod(k)} style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer", background: period === k ? "#00C896" : "transparent", color: period === k ? "#fff" : "#9CA3AF", transition: "all .2s" }}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 40, color: "#9CA3AF" }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
+          <p>Chargement...</p>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+            <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -16, right: -16, width: 60, height: 60, borderRadius: "50%", background: "#00C896", opacity: 0.08 }} />
+              <div style={{ fontSize: 24, marginBottom: 8 }}>💰</div>
+              <div style={{ color: "#9CA3AF", fontSize: 11, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>CA — {periodLabel}</div>
+              <div style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>{fmt(stats.ca)}</div>
+            </div>
+            <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -16, right: -16, width: 60, height: 60, borderRadius: "50%", background: "#3B82F6", opacity: 0.08 }} />
+              <div style={{ fontSize: 24, marginBottom: 8 }}>🛒</div>
+              <div style={{ color: "#9CA3AF", fontSize: 11, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>Ventes — {periodLabel}</div>
+              <div style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>{stats.ventes} ventes</div>
+            </div>
+            <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -16, right: -16, width: 60, height: 60, borderRadius: "50%", background: "#F59E0B", opacity: 0.08 }} />
+              <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
+              <div style={{ color: "#9CA3AF", fontSize: 11, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>Benefice — {periodLabel}</div>
+              <div style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>{fmt(stats.profit)}</div>
+            </div>
+            <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -16, right: -16, width: 60, height: 60, borderRadius: "50%", background: "#EF4444", opacity: 0.08 }} />
+              <div style={{ fontSize: 24, marginBottom: 8 }}>⚠️</div>
+              <div style={{ color: "#9CA3AF", fontSize: 11, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>Stock alerte</div>
+              <div style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>{stats.alerts} produits</div>
+            </div>
+          </div>
+
+          {/* Résumé rapide */}
+          <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18, marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ fontWeight: 800, fontSize: 15 }}>Résumé {periodLabel}</span>
+              <span style={{ background: "#00C89620", color: "#00C896", border: "1px solid #00C89640", borderRadius: 99, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{stats.ventes} ventes</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(31,41,55,.4)" }}>
+              <span style={{ color: "#9CA3AF", fontSize: 13 }}>Chiffre d&apos;affaires</span>
+              <span style={{ color: "#00C896", fontWeight: 700 }}>{fmt(stats.ca)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(31,41,55,.4)" }}>
+              <span style={{ color: "#9CA3AF", fontSize: 13 }}>Bénéfice estimé</span>
+              <span style={{ color: "#F59E0B", fontWeight: 700 }}>{fmt(stats.profit)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
+              <span style={{ color: "#9CA3AF", fontSize: 13 }}>Panier moyen</span>
+              <span style={{ color: "#3B82F6", fontWeight: 700 }}>{stats.ventes > 0 ? fmt(Math.round(stats.ca / stats.ventes)) : "0 FCFA"}</span>
+            </div>
+          </div>
+
+          {/* Dernières ventes */}
+          <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18 }}>
+            <div style={{ fontWeight: 800, marginBottom: 16, fontSize: 15 }}>Dernières ventes</div>
+            {recentSales.map(s => (
+              <div key={s.id} style={{ padding: "12px 0", borderBottom: "1px solid rgba(31,41,55,.4)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{s.label}</div>
+                  <div style={{ color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>
+                    {new Date(s.created_at).toLocaleDateString("fr-FR")} · {s.payment}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" as const }}>
+                  <div style={{ color: "#00C896", fontWeight: 800, fontSize: 14 }}>{fmt(s.total)}</div>
+                  <div style={{ color: "#6B7280", fontSize: 12 }}>+{fmt(s.profit)}</div>
+                </div>
+              </div>
+            ))}
+            {recentSales.length === 0 && (
+              <p style={{ color: "#6B7280", textAlign: "center" as const, padding: 20 }}>Aucune vente</p>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
   const [stats, setStats] = useState({ ca: 0, ventes: 0, profit: 0, alerts: 0 });
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
 
