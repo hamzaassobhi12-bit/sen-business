@@ -8,7 +8,7 @@ const G = "#00C896";
 interface Product { id: string; name: string; buy_price: number; sell_price: number; stock: number; min_stock: number; emoji: string; }
 interface Debt { id: string; client_name: string; phone: string; total: number; paid: number; }
 interface Sale { id: string; label: string; total: number; profit: number; payment: string; client_name: string; created_at: string; }
-interface Shop { id: string; name: string; owner_name: string; }
+interface Shop { id: string; name: string; owner_name: string; plan: string; trial_ends_at: string; subscription_ends_at: string; } }
 
 const cardStyle: React.CSSProperties = { background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18 };
 const inputStyle: React.CSSProperties = { width: "100%", background: "#0d1520", border: "1px solid #1F2937", borderRadius: 10, color: "#fff", padding: "11px 14px", fontSize: 14, outline: "none", boxSizing: "border-box" };
