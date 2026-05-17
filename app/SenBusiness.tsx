@@ -597,7 +597,29 @@ const [blocked, setBlocked] = useState(false);
   }, []);
 
   if (screen === "login") return <Login onLogin={s => { setShop(s); setScreen("app"); }} />;
-  if (!shop) return null;
+  if (!shop) return null;// Vérifier essai expiré
+  const trialExpired = shop.trial_ends_at && new Date() > new Date(shop.trial_ends_at) && shop.plan === 'trial';
+  if (trialExpired) return (
+    <div style={{ background: "#0A0F1E", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "system-ui,sans-serif", color: "#fff" }}>
+      <div style={{ width: "100%", maxWidth: 380, textAlign: "center" }}>
+        <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
+        <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 8 }}>Essai gratuit terminé</h1>
+        <p style={{ color: "#9CA3AF", fontSize: 15, marginBottom: 32, lineHeight: 1.6 }}>Votre essai de 7 jours est terminé.<br/>Passez au plan Pro pour continuer.</p>
+        <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 20, padding: 28 }}>
+          <div style={{ color: "#00C896", fontWeight: 900, fontSize: 32, marginBottom: 4 }}>5 000 FCFA</div>
+          <div style={{ color: "#9CA3AF", fontSize: 13, marginBottom: 20 }}>par mois</div>
+          <div style={{ background: "#0d1520", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <p style={{ color: "#9CA3AF", fontSize: 13, marginBottom: 8 }}>Envoyez sur Wave :</p>
+            <div style={{ color: "#fff", fontWeight: 900, fontSize: 22 }}>+221 78 658 46 22</div>
+            <p style={{ color: "#9CA3AF", fontSize: 12, marginTop: 4 }}>Objet : SenBusiness + {shop.name}</p>
+          </div>
+          <a href={`https://wa.me/221786584622?text=Bonjour je veux activer mon abonnement Sen Business pour la boutique: ${shop.name}`} style={{ display: "block", background: "linear-gradient(135deg,#25D366,#1ebe5c)", color: "#fff", borderRadius: 12, padding: "14px 0", fontWeight: 700, fontSize: 15, textDecoration: "none", textAlign: "center" }}>
+            💬 Contacter sur WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  );
 
   const nav = [{ id: "dashboard", e: "📊", l: "Dashboard" }, { id: "produits", e: "📦", l: "Produits" }, { id: "caisse", e: "🛒", l: "Caisse" }, { id: "dettes", e: "💸", l: "Dettes" }, { id: "logout", e: "🚪", l: "Quitter" }];
 
