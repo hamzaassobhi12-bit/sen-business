@@ -7,13 +7,15 @@ const G = "#00C896";
 
 interface Product { id: string; name: string; buy_price: number; sell_price: number; stock: number; min_stock: number; emoji: string; }
 interface Debt { id: string; client_name: string; phone: string; total: number; paid: number; }
-interface Sale { id: string; label: string; total: number; profit: number; payment: string; client_name: string; created_at: string; }
+interface SaleItem { name: string; qty: number; price: number; }
+interface Sale { id: string; label: string; total: number; profit: number; payment: string; client_name: string; created_at: string; items: SaleItem[]; disc: number; }
 interface Shop { id: string; name: string; owner_name: string; plan: string; trial_ends_at: string; subscription_ends_at: string; }
 
 const cardStyle: React.CSSProperties = { background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18 };
 const inputStyle: React.CSSProperties = { width: "100%", background: "#0d1520", border: "1px solid #1F2937", borderRadius: 10, color: "#fff", padding: "11px 14px", fontSize: 14, outline: "none", boxSizing: "border-box" };
 const btnG: React.CSSProperties = { background: "linear-gradient(135deg,#00C896,#00A87E)", color: "#fff", border: "none", borderRadius: 12, padding: "11px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" };
 const btnO: React.CSSProperties = { background: "transparent", color: G, border: "2px solid #00C896", borderRadius: 12, padding: "10px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer" };
+const EMOJIS = ["📦", "🌾", "🫙", "🧼", "🍬", "🥛", "🐟", "🍎", "🧴", "👕", "💊", "🔧"];
 
 function Toast({ msg, ok }: { msg: string; ok: boolean }) {
   return (
@@ -30,7 +32,7 @@ function Modal({ open, onClose, title, children }: { open: boolean; onClose: () 
       <div onClick={e => e.stopPropagation()} style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: "20px 20px 16px 16px", width: "100%", maxWidth: 430, maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ padding: "18px 20px", borderBottom: "1px solid #1F2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <b style={{ color: "#fff", fontSize: 16 }}>{title}</b>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#9CA3AF", fontSize: 24, cursor: "pointer" }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#9CA3AF", fontSize: 24, cursor: "pointer" }}>x</button>
         </div>
         <div style={{ padding: 20 }}>{children}</div>
       </div>
@@ -53,12 +55,12 @@ function StatBox({ emoji, label, value, accent = G }: { emoji: string; label: st
       <div style={{ position: "absolute", top: -16, right: -16, width: 60, height: 60, borderRadius: "50%", background: accent, opacity: 0.08 }} />
       <div style={{ fontSize: 24, marginBottom: 8 }}>{emoji}</div>
       <div style={{ color: "#9CA3AF", fontSize: 11, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{label}</div>
-      <div style={{ color: "#fff", fontSize: 20, fontWeight: 900 }}>{value}</div>
+      <div style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>{value}</div>
     </div>
   );
 }
 
-// LOGIN / REGISTER
+// LOGIN
 function Login({ onLogin }: { onLogin: (shop: Shop) => void }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
@@ -96,7 +98,7 @@ function Login({ onLogin }: { onLogin: (shop: Shop) => void }) {
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ background: "linear-gradient(135deg,#00C896,#00A87E)", width: 52, height: 52, borderRadius: 16, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 24, color: "#fff", marginBottom: 12 }}>S</div>
           <div style={{ fontWeight: 900, fontSize: 22 }}>Sen <span style={{ color: G }}>Business</span></div>
-          <div style={{ color: "#9CA3AF", fontSize: 13, marginTop: 4 }}>Gestion simple pour votre boutique 🇸🇳</div>
+          <div style={{ color: "#9CA3AF", fontSize: 13, marginTop: 4 }}>Gestion simple pour votre boutique</div>
         </div>
         <div style={cardStyle}>
           <div style={{ display: "flex", gap: 4, background: "#0d1520", borderRadius: 12, padding: 4, marginBottom: 20 }}>
@@ -116,7 +118,7 @@ function Login({ onLogin }: { onLogin: (shop: Shop) => void }) {
           <Field label="Mot de passe *" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
           {error && <div style={{ background: "#450a0a", border: "1px solid #991b1b", borderRadius: 10, padding: "10px 14px", marginBottom: 14, color: "#f87171", fontSize: 13 }}>{error}</div>}
           <button onClick={mode === "login" ? handleLogin : handleRegister} style={{ ...btnG, width: "100%", padding: 13, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            {loading ? "Chargement..." : mode === "login" ? "Se connecter →" : "Creer mon compte →"}
+            {loading ? "Chargement..." : mode === "login" ? "Se connecter" : "Creer mon compte"}
           </button>
         </div>
       </div>
@@ -136,7 +138,6 @@ function Dashboard({ shop }: { shop: Shop }) {
       setLoading(true);
       const now = new Date();
       let startDate = "";
-
       if (period === "today") {
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
       } else if (period === "week") {
@@ -146,25 +147,9 @@ function Dashboard({ shop }: { shop: Shop }) {
       } else if (period === "month") {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       }
-
-      const { data: sales } = await supabase
-        .from("sales")
-        .select("*")
-        .eq("shop_id", shop.id)
-        .gte("created_at", startDate);
-
-      const { data: products } = await supabase
-        .from("products")
-        .select("*")
-        .eq("shop_id", shop.id);
-
-      const { data: allSales } = await supabase
-        .from("sales")
-        .select("*")
-        .eq("shop_id", shop.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
+      const { data: sales } = await supabase.from("sales").select("*").eq("shop_id", shop.id).gte("created_at", startDate);
+      const { data: products } = await supabase.from("products").select("*").eq("shop_id", shop.id);
+      const { data: allSales } = await supabase.from("sales").select("*").eq("shop_id", shop.id).order("created_at", { ascending: false }).limit(5);
       if (sales) {
         setStats({
           ca: sales.reduce((a, s) => a + s.total, 0),
@@ -187,16 +172,13 @@ function Dashboard({ shop }: { shop: Shop }) {
       <p style={{ color: "#9CA3AF", fontSize: 13, margin: "0 0 16px" }}>
         {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} 👋
       </p>
-
-      {/* Sélecteur période */}
       <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "#111827", border: "1px solid #1F2937", borderRadius: 14, padding: 4 }}>
-        {[["today", "📅 Aujourd'hui"], ["week", "📆 Semaine"], ["month", "🗓️ Mois"]].map(([k, l]) => (
-          <button key={k} onClick={() => setPeriod(k)} style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer", background: period === k ? "#00C896" : "transparent", color: period === k ? "#fff" : "#9CA3AF", transition: "all .2s" }}>
+        {[["today", "Aujourd'hui"], ["week", "Semaine"], ["month", "Mois"]].map(([k, l]) => (
+          <button key={k} onClick={() => setPeriod(k)} style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer", background: period === k ? G : "transparent", color: period === k ? "#fff" : "#9CA3AF", transition: "all .2s" }}>
             {l}
           </button>
         ))}
       </div>
-
       {loading ? (
         <div style={{ textAlign: "center", padding: 40, color: "#9CA3AF" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
@@ -205,44 +187,22 @@ function Dashboard({ shop }: { shop: Shop }) {
       ) : (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-            <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18, position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: -16, right: -16, width: 60, height: 60, borderRadius: "50%", background: "#00C896", opacity: 0.08 }} />
-              <div style={{ fontSize: 24, marginBottom: 8 }}>💰</div>
-              <div style={{ color: "#9CA3AF", fontSize: 11, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>CA — {periodLabel}</div>
-              <div style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>{fmt(stats.ca)}</div>
-            </div>
-            <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18, position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: -16, right: -16, width: 60, height: 60, borderRadius: "50%", background: "#3B82F6", opacity: 0.08 }} />
-              <div style={{ fontSize: 24, marginBottom: 8 }}>🛒</div>
-              <div style={{ color: "#9CA3AF", fontSize: 11, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>Ventes — {periodLabel}</div>
-              <div style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>{stats.ventes} ventes</div>
-            </div>
-            <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18, position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: -16, right: -16, width: 60, height: 60, borderRadius: "50%", background: "#F59E0B", opacity: 0.08 }} />
-              <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
-              <div style={{ color: "#9CA3AF", fontSize: 11, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>Benefice — {periodLabel}</div>
-              <div style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>{fmt(stats.profit)}</div>
-            </div>
-            <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18, position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: -16, right: -16, width: 60, height: 60, borderRadius: "50%", background: "#EF4444", opacity: 0.08 }} />
-              <div style={{ fontSize: 24, marginBottom: 8 }}>⚠️</div>
-              <div style={{ color: "#9CA3AF", fontSize: 11, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>Stock alerte</div>
-              <div style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>{stats.alerts} produits</div>
-            </div>
+            <StatBox emoji="💰" label={`CA - ${periodLabel}`} value={fmt(stats.ca)} />
+            <StatBox emoji="🛒" label={`Ventes - ${periodLabel}`} value={`${stats.ventes} ventes`} accent="#3B82F6" />
+            <StatBox emoji="✨" label={`Benefice - ${periodLabel}`} value={fmt(stats.profit)} accent="#F59E0B" />
+            <StatBox emoji="⚠️" label="Stock alerte" value={`${stats.alerts} produits`} accent="#EF4444" />
           </div>
-
-          {/* Résumé rapide */}
-          <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18, marginBottom: 16 }}>
+          <div style={{ ...cardStyle, marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ fontWeight: 800, fontSize: 15 }}>Résumé {periodLabel}</span>
-              <span style={{ background: "#00C89620", color: "#00C896", border: "1px solid #00C89640", borderRadius: 99, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{stats.ventes} ventes</span>
+              <span style={{ fontWeight: 800, fontSize: 15 }}>Resume {periodLabel}</span>
+              <span style={{ background: "#00C89620", color: G, border: "1px solid #00C89640", borderRadius: 99, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{stats.ventes} ventes</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(31,41,55,.4)" }}>
-              <span style={{ color: "#9CA3AF", fontSize: 13 }}>Chiffre d&apos;affaires</span>
-              <span style={{ color: "#00C896", fontWeight: 700 }}>{fmt(stats.ca)}</span>
+              <span style={{ color: "#9CA3AF", fontSize: 13 }}>Chiffre d affaires</span>
+              <span style={{ color: G, fontWeight: 700 }}>{fmt(stats.ca)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(31,41,55,.4)" }}>
-              <span style={{ color: "#9CA3AF", fontSize: 13 }}>Bénéfice estimé</span>
+              <span style={{ color: "#9CA3AF", fontSize: 13 }}>Benefice estime</span>
               <span style={{ color: "#F59E0B", fontWeight: 700 }}>{fmt(stats.profit)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
@@ -250,56 +210,27 @@ function Dashboard({ shop }: { shop: Shop }) {
               <span style={{ color: "#3B82F6", fontWeight: 700 }}>{stats.ventes > 0 ? fmt(Math.round(stats.ca / stats.ventes)) : "0 FCFA"}</span>
             </div>
           </div>
-
-          {/* Dernières ventes */}
-          <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 18 }}>
-            <div style={{ fontWeight: 800, marginBottom: 16, fontSize: 15 }}>Dernières ventes</div>
+          <div style={cardStyle}>
+            <div style={{ fontWeight: 800, marginBottom: 16, fontSize: 15 }}>Dernieres ventes</div>
             {recentSales.map(s => (
               <div key={s.id} style={{ padding: "12px 0", borderBottom: "1px solid rgba(31,41,55,.4)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{s.label}</div>
-                  <div style={{ color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>
-                    {new Date(s.created_at).toLocaleDateString("fr-FR")} · {s.payment}
-                  </div>
+                  <div style={{ color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>{new Date(s.created_at).toLocaleDateString("fr-FR")} · {s.payment}</div>
                 </div>
-                <div style={{ textAlign: "right" as const }}>
-                  <div style={{ color: "#00C896", fontWeight: 800, fontSize: 14 }}>{fmt(s.total)}</div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ color: G, fontWeight: 800, fontSize: 14 }}>{fmt(s.total)}</div>
                   <div style={{ color: "#6B7280", fontSize: 12 }}>+{fmt(s.profit)}</div>
                 </div>
               </div>
             ))}
-            {recentSales.length === 0 && (
-              <p style={{ color: "#6B7280", textAlign: "center" as const, padding: 20 }}>Aucune vente</p>
-            )}
+            {recentSales.length === 0 && <p style={{ color: "#6B7280", textAlign: "center", padding: 20 }}>Aucune vente</p>}
           </div>
         </>
       )}
     </div>
   );
 }
-  const [stats, setStats] = useState({ ca: 0, ventes: 0, profit: 0, alerts: 0 });
-  const [recentSales, setRecentSales] = useState<Sale[]>([]);
-
-  useEffect(() => {
-    const load = async () => {
-      const today = new Date().toISOString().split("T")[0];
-      const { data: sales } = await supabase.from("sales").select("*").eq("shop_id", shop.id).gte("created_at", today);
-      const { data: products } = await supabase.from("products").select("*").eq("shop_id", shop.id);
-      const { data: allSales } = await supabase.from("sales").select("*").eq("shop_id", shop.id).order("created_at", { ascending: false }).limit(5);
-      if (sales) {
-        setStats({
-          ca: sales.reduce((a, s) => a + s.total, 0),
-          ventes: sales.length,
-          profit: sales.reduce((a, s) => a + s.profit, 0),
-          alerts: products ? products.filter((p: Product) => p.stock <= p.min_stock).length : 0,
-        });
-      }
-      if (allSales) setRecentSales(allSales);
-    };
-    load();
-  }, [shop.id]);
-
- 
 
 // PRODUITS
 function Produits({ shop, showToast }: { shop: Shop; showToast: (m: string, ok?: boolean) => void }) {
@@ -309,14 +240,12 @@ function Produits({ shop, showToast }: { shop: Shop; showToast: (m: string, ok?:
   const [editId, setEditId] = useState<string | null>(null);
   const [emoji, setEmoji] = useState("📦");
   const [f, setF] = useState({ name: "", buy: "", sell: "", stock: "", min: "5" });
-  const EMOJIS = ["📦", "🌾", "🫙", "🧼", "🍬", "🥛", "🐟", "🍎", "🧴", "👕", "💊", "🔧"];
 
   useEffect(() => {
     supabase.from("products").select("*").eq("shop_id", shop.id).then(({ data }) => { if (data) setProducts(data); });
   }, [shop.id]);
 
   const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-
   const save = async () => {
     if (!f.name || !f.sell) { showToast("Nom et prix requis", false); return; }
     const d = { name: f.name, emoji, buy_price: +f.buy || 0, sell_price: +f.sell, stock: +f.stock || 0, min_stock: +f.min || 5, shop_id: shop.id };
@@ -329,22 +258,19 @@ function Produits({ shop, showToast }: { shop: Shop; showToast: (m: string, ok?:
     }
     setModal(false);
   };
-
   const del = async (id: string) => {
     if (!confirm("Supprimer ?")) return;
     await supabase.from("products").delete().eq("id", id);
     setProducts(products.filter(p => p.id !== id));
     showToast("Supprime");
   };
-
   const adj = async (id: string, d: number) => {
     const p = products.find(x => x.id === id);
     if (!p) return;
-    const newStock = Math.max(0, p.stock + d);
-    await supabase.from("products").update({ stock: newStock }).eq("id", id);
-    setProducts(products.map(x => x.id === id ? { ...x, stock: newStock } : x));
+    const ns = Math.max(0, p.stock + d);
+    await supabase.from("products").update({ stock: ns }).eq("id", id);
+    setProducts(products.map(x => x.id === id ? { ...x, stock: ns } : x));
   };
-
   const openAdd = () => { setEditId(null); setEmoji("📦"); setF({ name: "", buy: "", sell: "", stock: "", min: "5" }); setModal(true); };
   const openEdit = (p: Product) => { setEditId(p.id); setEmoji(p.emoji); setF({ name: p.name, buy: String(p.buy_price), sell: String(p.sell_price), stock: String(p.stock), min: String(p.min_stock) }); setModal(true); };
 
@@ -371,7 +297,7 @@ function Produits({ shop, showToast }: { shop: Shop; showToast: (m: string, ok?:
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              <button onClick={() => adj(p.id, -1)} style={{ background: "#EF444420", color: "#EF4444", border: "1px solid #EF444440", borderRadius: 7, padding: "4px 9px", cursor: "pointer", fontWeight: 800, fontSize: 14 }}>−</button>
+              <button onClick={() => adj(p.id, -1)} style={{ background: "#EF444420", color: "#EF4444", border: "1px solid #EF444440", borderRadius: 7, padding: "4px 9px", cursor: "pointer", fontWeight: 800, fontSize: 14 }}>-</button>
               <span style={{ color: low ? "#EF4444" : "#10B981", fontWeight: 700, fontSize: 13, minWidth: 28, textAlign: "center" }}>{p.stock}</span>
               <button onClick={() => adj(p.id, 1)} style={{ background: "#00C89620", color: G, border: "1px solid #00C89640", borderRadius: 7, padding: "4px 9px", cursor: "pointer", fontWeight: 800, fontSize: 14 }}>+</button>
             </div>
@@ -457,7 +383,7 @@ function Caisse({ shop, showToast }: { shop: Shop; showToast: (m: string, ok?: b
       <h1 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 4px" }}>Caisse</h1>
       <p style={{ color: "#9CA3AF", fontSize: 13, margin: "0 0 16px" }}>Enregistrez une vente rapidement</p>
       <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 4, width: "fit-content", display: "flex", gap: 4, marginBottom: 20 }}>
-        {[["vente", "🛒 Nouvelle vente"], ["histo", "📋 Historique"]].map(([k, l]) => (
+        {[["vente", "Nouvelle vente"], ["histo", "Historique"]].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} style={{ padding: "8px 16px", borderRadius: 9, border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer", background: tab === k ? G : "transparent", color: tab === k ? "#fff" : "#9CA3AF" }}>{l}</button>
         ))}
       </div>
@@ -481,7 +407,7 @@ function Caisse({ shop, showToast }: { shop: Shop; showToast: (m: string, ok?: b
           </div>
           <div>
             <div style={{ ...cardStyle, position: "sticky", top: 72 }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #1F2937", fontWeight: 800, fontSize: 15 }}>🛒 Panier ({cart.reduce((a, i) => a + i.qty, 0)})</div>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #1F2937", fontWeight: 800, fontSize: 15 }}>Panier ({cart.reduce((a, i) => a + i.qty, 0)})</div>
               {cart.length === 0 ? (
                 <div style={{ padding: 32, textAlign: "center" }}><div style={{ fontSize: 36, marginBottom: 8 }}>🛒</div><p style={{ color: "#9CA3AF", fontSize: 13 }}>Panier vide</p></div>
               ) : (
@@ -495,11 +421,11 @@ function Caisse({ shop, showToast }: { shop: Shop; showToast: (m: string, ok?: b
                           <div style={{ color: G, fontSize: 12, fontWeight: 700 }}>{fmt(item.sell_price)}</div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <button onClick={() => upd(item.id, -1)} style={{ width: 24, height: 24, background: "#1F2937", border: "none", borderRadius: 6, cursor: "pointer", color: "#fff", fontWeight: 700, fontSize: 14, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                          <button onClick={() => upd(item.id, -1)} style={{ width: 24, height: 24, background: "#1F2937", border: "none", borderRadius: 6, cursor: "pointer", color: "#fff", fontWeight: 700, fontSize: 14, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>-</button>
                           <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, width: 18, textAlign: "center" }}>{item.qty}</span>
                           <button onClick={() => upd(item.id, 1)} style={{ width: 24, height: 24, background: "#1F2937", border: "none", borderRadius: 6, cursor: "pointer", color: "#fff", fontWeight: 700, fontSize: 14, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>+</button>
                         </div>
-                        <button onClick={() => setCart(cart.filter(i => i.id !== item.id))} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 16 }}>×</button>
+                        <button onClick={() => setCart(cart.filter(i => i.id !== item.id))} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 16 }}>x</button>
                       </div>
                     ))}
                   </div>
@@ -658,45 +584,6 @@ function Dettes({ shop, showToast }: { shop: Shop; showToast: (m: string, ok?: b
   );
 }
 
-// PAYWALL
-function Paywall({ shop }: { shop: Shop }) {
-  return (
-    <div style={{ background: "#0A0F1E", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "system-ui,sans-serif", color: "#fff" }}>
-      <div style={{ width: "100%", maxWidth: 380, textAlign: "center" }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
-        <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 8 }}>Essai gratuit terminé</h1>
-        <p style={{ color: "#9CA3AF", fontSize: 15, marginBottom: 32, lineHeight: 1.6 }}>
-          Votre essai de 7 jours est terminé.<br/>
-          Passez au plan Pro pour continuer.
-        </p>
-        <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 20, padding: 28, marginBottom: 20 }}>
-          <div style={{ background: "rgba(0,200,150,.1)", border: "1px solid rgba(0,200,150,.3)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-            <div style={{ color: "#00C896", fontWeight: 900, fontSize: 28 }}>5 000 FCFA</div>
-            <div style={{ color: "#9CA3AF", fontSize: 13 }}>par mois</div>
-          </div>
-          <div style={{ textAlign: "left", marginBottom: 20 }}>
-            {["Produits illimités", "Ventes illimitées", "Suivi des dettes", "Rapports complets", "Support WhatsApp"].map((f, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(31,41,55,.4)" }}>
-                <span style={{ color: "#00C896", fontSize: 18 }}>✓</span>
-                <span style={{ fontSize: 14 }}>{f}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ background: "#0d1520", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-            <p style={{ color: "#9CA3AF", fontSize: 13, marginBottom: 8 }}>Envoyez 5 000 FCFA sur Wave :</p>
-            <div style={{ color: "#fff", fontWeight: 900, fontSize: 22, marginBottom: 4 }}>+221 78 658 46 22</div>
-            <p style={{ color: "#9CA3AF", fontSize: 12 }}>Objet : SenBusiness + {shop.name}</p>
-          </div>
-          <a href={`https://wa.me/221786584622?text=Bonjour je veux activer mon abonnement Sen Business pour la boutique: ${shop.name}`} style={{ display: "block", background: "linear-gradient(135deg,#25D366,#1ebe5c)", color: "#fff", borderRadius: 12, padding: "14px 0", fontWeight: 700, fontSize: 15, textDecoration: "none", textAlign: "center" }}>
-            💬 Contacter sur WhatsApp
-          </a>
-        </div>
-        <p style={{ color: "#6B7280", fontSize: 12 }}>Après paiement, votre compte sera activé dans les 2h</p>
-      </div>
-    </div>
-  );
-}
-
 // ROOT
 export default function SenBusiness() {
   const [screen, setScreen] = useState<"login" | "app">("login");
@@ -704,7 +591,6 @@ export default function SenBusiness() {
   const [page, setPage] = useState("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
-const [blocked, setBlocked] = useState(false);
   const [toastOk, setToastOk] = useState(true);
 
   const showToast = (msg: string, ok = true) => { setToastMsg(msg); setToastOk(ok); setTimeout(() => setToastMsg(""), 2600); };
@@ -720,16 +606,18 @@ const [blocked, setBlocked] = useState(false);
   }, []);
 
   if (screen === "login") return <Login onLogin={s => { setShop(s); setScreen("app"); }} />;
-  if (!shop) return null;// Vérifier essai expiré
-  const trialExpired = shop.trial_ends_at && new Date() > new Date(shop.trial_ends_at) && shop.plan === 'trial';
+  if (!shop) return null;
+
+  // Verifier essai expire
+  const trialExpired = shop.trial_ends_at && new Date() > new Date(shop.trial_ends_at) && shop.plan === "trial";
   if (trialExpired) return (
     <div style={{ background: "#0A0F1E", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "system-ui,sans-serif", color: "#fff" }}>
       <div style={{ width: "100%", maxWidth: 380, textAlign: "center" }}>
         <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
-        <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 8 }}>Essai gratuit terminé</h1>
-        <p style={{ color: "#9CA3AF", fontSize: 15, marginBottom: 32, lineHeight: 1.6 }}>Votre essai de 7 jours est terminé.<br/>Passez au plan Pro pour continuer.</p>
+        <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 8 }}>Essai gratuit termine</h1>
+        <p style={{ color: "#9CA3AF", fontSize: 15, marginBottom: 32, lineHeight: 1.6 }}>Votre essai de 7 jours est termine.<br />Passez au plan Pro pour continuer.</p>
         <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 20, padding: 28 }}>
-          <div style={{ color: "#00C896", fontWeight: 900, fontSize: 32, marginBottom: 4 }}>5 000 FCFA</div>
+          <div style={{ color: G, fontWeight: 900, fontSize: 32, marginBottom: 4 }}>5 000 FCFA</div>
           <div style={{ color: "#9CA3AF", fontSize: 13, marginBottom: 20 }}>par mois</div>
           <div style={{ background: "#0d1520", borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <p style={{ color: "#9CA3AF", fontSize: 13, marginBottom: 8 }}>Envoyez sur Wave :</p>
@@ -740,11 +628,18 @@ const [blocked, setBlocked] = useState(false);
             💬 Contacter sur WhatsApp
           </a>
         </div>
+        <p style={{ color: "#6B7280", fontSize: 12, marginTop: 16 }}>Apres paiement, votre compte sera active dans les 2h</p>
       </div>
     </div>
   );
 
-  const nav = [{ id: "dashboard", e: "📊", l: "Dashboard" }, { id: "produits", e: "📦", l: "Produits" }, { id: "caisse", e: "🛒", l: "Caisse" }, { id: "dettes", e: "💸", l: "Dettes" }, { id: "logout", e: "🚪", l: "Quitter" }];
+  const nav = [
+    { id: "dashboard", e: "📊", l: "Dashboard" },
+    { id: "produits", e: "📦", l: "Produits" },
+    { id: "caisse", e: "🛒", l: "Caisse" },
+    { id: "dettes", e: "💸", l: "Dettes" },
+    { id: "logout", e: "🚪", l: "Quitter" },
+  ];
 
   return (
     <div style={{ background: "#0A0F1E", minHeight: "100vh", fontFamily: "system-ui,sans-serif", color: "#fff" }}>
@@ -753,19 +648,8 @@ const [blocked, setBlocked] = useState(false);
       <div style={{ background: "rgba(10,15,30,.96)", backdropFilter: "blur(12px)", borderBottom: "1px solid #1F2937", padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ background: "linear-gradient(135deg,#00C896,#00A87E)", width: 32, height: 32, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: 16, flexShrink: 0 }}>S</div>
         <span style={{ fontWeight: 800, fontSize: 15, flex: 1 }}>Sen <span style={{ color: G }}>Business</span> <span style={{ color: "#6B7280", fontSize: 13, fontWeight: 400 }}>— {shop.name}</span></span>
-        <div onClick={() => setMenuOpen(!menuOpen)} style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#00C896,#00A87E)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 15, cursor: "pointer", position: "relative" }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#00C896,#00A87E)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 15, color: "#fff" }}>
           {shop.owner_name?.charAt(0) || "U"}
-          {menuOpen && (
-            <div onClick={e => e.stopPropagation()} style={{ position: "absolute", top: 44, right: 0, background: "#111827", border: "1px solid #1F2937", borderRadius: 14, padding: 8, zIndex: 200, minWidth: 180, boxShadow: "0 8px 32px rgba(0,0,0,.5)" }}>
-              <div style={{ padding: "8px 12px", borderBottom: "1px solid #1F2937", marginBottom: 4 }}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>{shop.owner_name}</div>
-                <div style={{ color: "#9CA3AF", fontSize: 12 }}>{shop.name}</div>
-              </div>
-              <button onClick={async () => { window.location.href = "/"; }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontWeight: 600, fontSize: 13, borderRadius: 8 }}>
-                🚪 Deconnexion
-              </button>
-            </div>
-          )}
         </div>
       </div>
       <div style={{ padding: "20px 16px 100px", maxWidth: 900, margin: "0 auto" }}>
@@ -778,10 +662,17 @@ const [blocked, setBlocked] = useState(false);
         {nav.map(n => {
           const active = page === n.id;
           return (
-            <button key={n.id} onClick={() => n.id === "logout" ? (async () => { await supabase.auth.signOut(); window.location.href = "/"; })() : setPage(n.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0 14px", border: "none", background: "none", cursor: "pointer", position: "relative" }}>
-              {active && <div style={{ position: "absolute", top: 0, left: "20%", right: "20%", height: 2, background: G, borderRadius: "0 0 4px 4px" }} />}
+            <button key={n.id} onClick={() => {
+              if (n.id === "logout") {
+                supabase.auth.signOut();
+                window.location.href = "/";
+              } else {
+                setPage(n.id);
+              }
+            }} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0 14px", border: "none", background: "none", cursor: "pointer", position: "relative" }}>
+              {active && <div style={{ position: "absolute", top: 0, left: "20%", right: "20%", height: 2, background: n.id === "logout" ? "#EF4444" : G, borderRadius: "0 0 4px 4px" }} />}
               <span style={{ fontSize: 20, marginBottom: 3 }}>{n.e}</span>
-              <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? G : "#9CA3AF" }}>{n.l}</span>
+              <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: n.id === "logout" ? "#EF4444" : active ? G : "#9CA3AF" }}>{n.l}</span>
             </button>
           );
         })}
