@@ -299,35 +299,7 @@ function Dashboard({ shop }: { shop: Shop }) {
     load();
   }, [shop.id]);
 
-  return (
-    <div>
-      <h1 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 4px" }}>Tableau de bord</h1>
-      <p style={{ color: "#9CA3AF", fontSize: 13, margin: "0 0 20px" }}>{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} 👋</p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-        <StatBox emoji="💰" label="CA Aujourd'hui" value={fmt(stats.ca)} />
-        <StatBox emoji="🛒" label="Ventes" value={`${stats.ventes} ventes`} accent="#3B82F6" />
-        <StatBox emoji="✨" label="Benefice" value={fmt(stats.profit)} accent="#F59E0B" />
-        <StatBox emoji="⚠️" label="Stock alerte" value={`${stats.alerts} produits`} accent="#EF4444" />
-      </div>
-      <div style={cardStyle}>
-        <div style={{ fontWeight: 800, marginBottom: 16, fontSize: 15 }}>Dernieres ventes</div>
-        {recentSales.map(s => (
-          <div key={s.id} style={{ padding: "12px 0", borderBottom: "1px solid rgba(31,41,55,.4)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{s.label}</div>
-              <div style={{ color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>{new Date(s.created_at).toLocaleDateString("fr-FR")} · {s.payment}</div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ color: G, fontWeight: 800, fontSize: 14 }}>{fmt(s.total)}</div>
-              <div style={{ color: "#6B7280", fontSize: 12 }}>+{fmt(s.profit)}</div>
-            </div>
-          </div>
-        ))}
-        {recentSales.length === 0 && <p style={{ color: "#6B7280", textAlign: "center", padding: 20 }}>Aucune vente aujourd&apos;hui</p>}
-      </div>
-    </div>
-  );
-}
+ 
 
 // PRODUITS
 function Produits({ shop, showToast }: { shop: Shop; showToast: (m: string, ok?: boolean) => void }) {
