@@ -617,7 +617,7 @@ export default function SenBusiness() {
         <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 8 }}>Essai gratuit termine</h1>
         <p style={{ color: "#9CA3AF", fontSize: 15, marginBottom: 32, lineHeight: 1.6 }}>Votre essai de 7 jours est termine.<br />Passez au plan Pro pour continuer.</p>
         <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 20, padding: 28 }}>
-          <div style={{ color: G, fontWeight: 900, fontSize: 32, marginBottom: 4 }}>5 000 FCFA</div>
+          <div style={{ color: G, fontWeight: 900, fontSize: 32, marginBottom: 4 }}>3 000 FCFA</div>
           <div style={{ color: "#9CA3AF", fontSize: 13, marginBottom: 20 }}>par mois</div>
           <div style={{ background: "#0d1520", borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <p style={{ color: "#9CA3AF", fontSize: 13, marginBottom: 8 }}>Envoyez sur Wave :</p>
