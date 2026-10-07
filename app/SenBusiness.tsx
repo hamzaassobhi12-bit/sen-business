@@ -840,8 +840,115 @@ function Analyses({ shop }: { shop:Shop }) {
   );
 }
 
+
+// ── PARAMETRES ────────────────────────────────────────────────────
+function Parametres({ shop, showToast }: { shop:Shop; showToast:(m:string,ok?:boolean)=>void }) {
+  const [shopName, setShopName] = useState(shop.name);
+  const [ownerName, setOwnerName] = useState(shop.owner_name);
+  const [saving, setSaving] = useState(false);
+
+  const trialEnd = shop.trial_ends_at ? new Date(shop.trial_ends_at) : null;
+  const subEnd = shop.subscription_ends_at ? new Date(shop.subscription_ends_at) : null;
+  const isPro = shop.plan === "pro";
+  const expiry = isPro ? subEnd : trialEnd;
+  const daysLeft = expiry ? Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / 86400000)) : 0;
+
+  const saveShop = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("shops").update({ name: shopName, owner_name: ownerName }).eq("id", shop.id);
+    setSaving(false);
+    if (error) showToast("Erreur lors de la sauvegarde", false);
+    else showToast("Informations mises a jour !");
+  };
+
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 11, color: T.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10, paddingLeft: 4 }}>{title}</div>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, overflow: "hidden" }}>{children}</div>
+    </div>
+  );
+
+  const Row = ({ e, label, value, danger = false, onPress }: { e: string; label: string; value?: string; danger?: boolean; onPress?: () => void }) => (
+    <div onClick={onPress} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", borderBottom: `1px solid ${T.border}`, cursor: onPress ? "pointer" : "default" }}>
+      <div style={{ width: 38, height: 38, borderRadius: 12, background: danger ? "rgba(255,87,114,.12)" : `${G}10`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{e}</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 600, fontSize: 14, color: danger ? T.red : T.text }}>{label}</div>
+        {value && <div style={{ color: T.muted, fontSize: 12, marginTop: 2 }}>{value}</div>}
+      </div>
+      {onPress && <span style={{ color: T.muted, fontSize: 18 }}>›</span>}
+    </div>
+  );
+
+  return (
+    <div className="page">
+      <h1 style={{ fontSize: 22, fontWeight: 900, color: T.text, margin: "0 0 20px" }}>Parametres</h1>
+
+      {/* Plan actuel */}
+      <div style={{ background: isPro ? "linear-gradient(135deg,#071C14,#020F1F)" : "linear-gradient(135deg,#1A100A,#0D0918)", border: `1px solid ${isPro ? G+"30" : T.gold+"30"}`, borderRadius: 20, padding: 20, marginBottom: 20, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -30, right: -30, width: 100, height: 100, borderRadius: "50%", background: isPro ? `${G}12` : `${T.gold}12` }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 11, color: isPro ? `${G}AA` : `${T.gold}AA`, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>Votre abonnement</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: T.text }}>Plan {isPro ? "Pro ✨" : "Essai"}</div>
+            <div style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>
+              {daysLeft > 0 ? `Expire dans ${daysLeft} jour${daysLeft > 1 ? "s" : ""}` : "Expire aujourd'hui"}
+            </div>
+          </div>
+          <div style={{ background: isPro ? `${G}20` : `${T.gold}20`, border: `1px solid ${isPro ? G+"40" : T.gold+"40"}`, borderRadius: 99, padding: "6px 14px" }}>
+            <span style={{ color: isPro ? G : T.gold, fontWeight: 700, fontSize: 13 }}>3 000 FCFA/mois</span>
+          </div>
+        </div>
+        {!isPro && (
+          <a href={`https://wa.me/221786584622?text=Bonjour je veux activer mon abonnement Sen Business pour la boutique: ${shop.name}`}
+            style={{ display: "block", marginTop: 14, background: `linear-gradient(135deg,${G},#00A87E)`, color: "#000", borderRadius: 12, padding: "12px 0", fontWeight: 800, fontSize: 14, textDecoration: "none", textAlign: "center" }}>
+            🚀 Passer au Plan Pro
+          </a>
+        )}
+      </div>
+
+      {/* Infos boutique */}
+      <Section title="Ma boutique">
+        <div style={{ padding: "16px 18px" }}>
+          <Field label="Nom de la boutique" value={shopName} onChange={e => setShopName(e.target.value)} placeholder="Boutique Narbi" />
+          <Field label="Votre nom" value={ownerName} onChange={e => setOwnerName(e.target.value)} placeholder="Hamza" />
+          <button onClick={saveShop} style={{ ...btnG, width: "100%", padding: 12, opacity: saving ? 0.7 : 1 }}>
+            {saving ? "Sauvegarde..." : "💾 Sauvegarder"}
+          </button>
+        </div>
+      </Section>
+
+      {/* Compte */}
+      <Section title="Compte">
+        <Row e="📧" label="Email" value="Votre email de connexion" />
+        <Row e="🔑" label="Changer le mot de passe" onPress={() => {
+          supabase.auth.getUser().then(({ data }) => {
+            if (data.user?.email) {
+              supabase.auth.resetPasswordForEmail(data.user.email);
+              showToast("Email de reinitialisation envoye !");
+            }
+          });
+        }} />
+        <Row e="🆔" label="ID Boutique" value={`#${shop.id.slice(0, 8).toUpperCase()}`} />
+      </Section>
+
+      {/* Support */}
+      <Section title="Aide & Support">
+        <Row e="💬" label="Contacter le support" value="WhatsApp · +221 78 658 46 22" onPress={() => window.open("https://wa.me/221786584622?text=Bonjour, j'ai besoin d'aide avec Sen Business", "_blank")} />
+        <Row e="📖" label="Guide d'utilisation" value="Apprenez a utiliser Sen Business" onPress={() => {}} />
+        <Row e="⭐" label="Donner votre avis" value="Aidez-nous a ameliorer l'app" onPress={() => {}} />
+      </Section>
+
+      {/* Version */}
+      <div style={{ textAlign: "center", padding: "10px 0 20px" }}>
+        <div style={{ color: T.muted, fontSize: 12 }}>Sen Business · Version 1.0</div>
+        <div style={{ color: `${T.muted}80`, fontSize: 11, marginTop: 4 }}>Fait avec ❤️ pour les commercants du Senegal</div>
+      </div>
+    </div>
+  );
+}
+
 // ── BOTTOM SHEET ──────────────────────────────────────────────────
-function BottomSheet({ open, onClose, onNav, currentPage }: { open:boolean; onClose:()=>void; onNav:(id:string)=>void; currentPage:string }) {
+function BottomSheet({ open, onClose, onNav, onLogout, currentPage }: { open:boolean; onClose:()=>void; onNav:(id:string)=>void; onLogout:()=>void; currentPage:string }) {
   const items=[
     {id:"analyses",e:"📈",l:"Analyses",desc:"Statistiques & performances"},
     {id:"settings",e:"⚙️",l:"Parametres",desc:"Boutique, compte, abonnement"},
@@ -854,7 +961,7 @@ function BottomSheet({ open, onClose, onNav, currentPage }: { open:boolean; onCl
         <div style={{width:36,height:4,borderRadius:99,background:"rgba(255,255,255,.1)",margin:"14px auto 22px"}}/>
         <div style={{padding:"0 16px"}}>
           {items.map(item=>(
-            <button key={item.id} onClick={()=>{if(item.id==="logout"){supabase.auth.signOut();window.location.href="/";}else{onNav(item.id);onClose();}}} style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 14px",background:currentPage===item.id?`${G}0C`:"transparent",border:`1px solid ${currentPage===item.id?G+"25":"transparent"}`,borderRadius:16,cursor:"pointer",marginBottom:8}}>
+            <button key={item.id} onClick={()=>{if(item.id==="logout"){supabase.auth.signOut().then(()=>onLogout());}else{onNav(item.id);onClose();}}} style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 14px",background:currentPage===item.id?`${G}0C`:"transparent",border:`1px solid ${currentPage===item.id?G+"25":"transparent"}`,borderRadius:16,cursor:"pointer",marginBottom:8}}>
               <div style={{width:46,height:46,borderRadius:14,background:item.danger?"rgba(255,87,114,.12)":currentPage===item.id?`${G}18`:"rgba(255,255,255,.05)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{item.e}</div>
               <div style={{flex:1,textAlign:"left"}}>
                 <div style={{color:item.danger?T.red:currentPage===item.id?G:T.text,fontWeight:700,fontSize:15}}>{item.l}</div>
@@ -877,7 +984,7 @@ function BottomSheet({ open, onClose, onNav, currentPage }: { open:boolean; onCl
 
 // ── ROOT ──────────────────────────────────────────────────────────
 export default function SenBusiness() {
-  const [screen,setScreen]=useState<"login"|"app">("login");
+  const [screen,setScreen]=useState<"login"|"app"|"bye">("login");
   const [shop,setShop]=useState<Shop|null>(null);
   const [page,setPage]=useState("dashboard");
   const [sheetOpen,setSheet]=useState(false);
@@ -896,6 +1003,21 @@ export default function SenBusiness() {
   },[]);
 
   if(screen==="login")return<Login onLogin={s=>{setShop(s);setScreen("app");}}/>;
+
+  if(screen==="bye")return(
+    <div style={{background:T.dark,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"system-ui,sans-serif",color:T.text}}>
+      <style>{appCSS}</style>
+      <div style={{textAlign:"center",animation:"fadeUp .4s ease"}}>
+        <div style={{fontSize:72,marginBottom:20}}>👋</div>
+        <h1 style={{fontSize:26,fontWeight:900,marginBottom:8}}>A bientot !</h1>
+        <p style={{color:T.muted,fontSize:15,marginBottom:32,lineHeight:1.6}}>Vous etes bien deconnecte.<br/>Vous pouvez fermer l&apos;application.</p>
+        <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:280,margin:"0 auto"}}>
+          <button onClick={()=>window.close()} style={{background:`linear-gradient(135deg,${G},#00A87E)`,color:"#000",border:"none",borderRadius:14,padding:"14px 0",fontWeight:800,fontSize:15,cursor:"pointer"}}>Fermer l&apos;application</button>
+          <button onClick={()=>{setScreen("login");setShop(null);}} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"14px 0",fontWeight:700,fontSize:15,cursor:"pointer",color:T.muted}}>Se reconnecter</button>
+        </div>
+      </div>
+    </div>
+  );
   if(!shop)return null;
 
   const trialExpired=shop.trial_ends_at&&new Date()>new Date(shop.trial_ends_at)&&shop.plan==="trial";
@@ -962,6 +1084,7 @@ export default function SenBusiness() {
         {page==="produits"&&<Produits shop={shop} showToast={showToast}/>}
         {page==="dettes"&&<Dettes shop={shop} showToast={showToast}/>}
         {page==="analyses"&&<Analyses shop={shop}/>}
+        {page==="settings"&&<Parametres shop={shop} showToast={showToast}/>}
       </div>
 
       {/* Split pill nav + FAB */}
@@ -981,7 +1104,7 @@ export default function SenBusiness() {
       </div>
 
       {/* Bottom sheet */}
-      <BottomSheet open={sheetOpen} onClose={()=>setSheet(false)} currentPage={page} onNav={id=>{setPage(id);}}/>
+      <BottomSheet open={sheetOpen} onClose={()=>setSheet(false)} currentPage={page} onNav={id=>{setPage(id);}} onLogout={()=>{setScreen("bye");setSheet(false);}}/>
 
       {/* Caisse overlay */}
       {caisseOpen&&<Caisse shop={shop} showToast={showToast} onClose={()=>setCaisse(false)}/>}
